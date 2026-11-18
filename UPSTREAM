@@ -142,3 +142,10 @@ Changes made by Incord AI, newest last:
   (.claude-plugin/plugin.json and marketplace.json, .mcp.json) under the Watchman Whiteboard name with the
   MCP server `whiteboard`; package.json lists the math and chemistry packages the board loads by name, at
   the versions Watchman's build tests; a README and a .gitignore for the staged library folders.
+- 2026-11-18: the project's documents (the owner: a doc creator every agent can use, saving in the project's docs
+  folder). New scripts/lib/board-docs.js: Markdown files under <project>/docs, the project being the nearest folder
+  with .git at or above the agent's folder; checked paths (a .md or .markdown file under docs/, never through a link
+  out of it); a document changed only from the version it was read at (rev, DocChanged/DocExists); writes through a
+  temp file renamed into place; section and find edits. mcp.js gains doc_list, doc_read, doc_write and doc_edit,
+  which need no board. Tests: test/unit/board-docs.test.js, test/integration/docs.test.js; the tool list in
+  test/integration/mcp.test.js (SPEC CHANGED); test/support/mcp-harness.js startMcp takes the folder to run in.

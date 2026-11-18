@@ -51,6 +51,7 @@ node <this folder>/skills/talk-on-board/scripts/mcp.js
 | `draw_geometry`, `draw_molecule`, `draw_circuit`, `draw_map`, `draw_music` | Geometry, chemistry, circuits, maps and music. |
 | `edit_items`, `delete_items`, `undo_operation` | Change, remove or take back a drawing. |
 | `take_screenshot`, `show_activity` | Check a drawing, and show what the agent is doing. |
+| `doc_list`, `doc_read`, `doc_write`, `doc_edit` | The project's documents: Markdown files under `docs/`, written and edited by any agent. A change is made only from the version the agent read, so a newer edit is never overwritten. |
 
 Skills that come with it: `talk-on-board`, `consult-on-board`, `issue-driven`, `four-forms`, `five-whys` and
 `debug-board-server`.

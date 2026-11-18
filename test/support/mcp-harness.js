@@ -100,9 +100,10 @@ function pngFile(id) {
   return { id, mimeType: "image/png", dataURL: `data:image/png;base64,${TINY_PNG_BASE64}`, created: 1 };
 }
 
+// `cwd` (Watchman Whiteboard): the folder the MCP Server runs in, as an agent's project; the doc_* tools act on it.
 // @purity non-pure
-function startMcp(env) {
-  const child = spawn(process.execPath, [MCP], { env: { ...process.env, ...env }, stdio: ["pipe", "pipe", "pipe"] });
+function startMcp(env, cwd = undefined) {
+  const child = spawn(process.execPath, [MCP], { env: { ...process.env, ...env }, cwd, stdio: ["pipe", "pipe", "pipe"] });
   const replies = new Map();
   const stdoutLines = [];
   let stderr = "";
