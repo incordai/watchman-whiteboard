@@ -177,10 +177,10 @@ test("the MCP Server opens the board, draws, answers, reads, and keeps the Token
 
     // FR-132, FR-142: the tool list and the rules in the descriptions. SPEC CHANGED (2026-11-17): the subject tools
     // draw_circuit, draw_cycle, draw_parts and draw_timeline (lib/board-subjects.js) and draw_map (lib/board-map.js)
-    // are in the list.
+    // are in the list. SPEC CHANGED (2026-11-18): the project's documents, doc_edit, doc_list, doc_read and doc_write.
     const tools = (await mcp.rpc("tools/list", {})).result.tools;
     assert.deepEqual(tools.map((t) => t.name).sort(), [
-      "board_index", "check_math", "close_board", "delete_items", "draw_chart", "draw_chart3d", "draw_circuit", "draw_cycle", "draw_geometry", "draw_map", "draw_math", "draw_mermaid", "draw_molecule", "draw_music", "draw_parts", "draw_plot", "draw_skeletons", "draw_table", "draw_timeline", "edit_items", "open_board", "read_board",
+      "board_index", "check_math", "close_board", "delete_items", "doc_edit", "doc_list", "doc_read", "doc_write", "draw_chart", "draw_chart3d", "draw_circuit", "draw_cycle", "draw_geometry", "draw_map", "draw_math", "draw_mermaid", "draw_molecule", "draw_music", "draw_parts", "draw_plot", "draw_skeletons", "draw_table", "draw_timeline", "edit_items", "open_board", "read_board",
       "read_messages", "read_status", "show_activity", "take_screenshot", "undo_operation", "write_answer",
     ]);
     for (const name of ["write_answer", "draw_mermaid", "draw_table", "draw_skeletons", "edit_items"]) {
