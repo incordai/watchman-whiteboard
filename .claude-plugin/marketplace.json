@@ -1,0 +1,17 @@
+{
+  "name": "incordai",
+  "owner": {
+    "name": "Incord AI"
+  },
+  "metadata": {
+    "description": "Watchman Whiteboard: AI agents explain, draw and chart on a local whiteboard."
+  },
+  "plugins": [
+    {
+      "name": "watchman-whiteboard",
+      "source": "./",
+      "description": "AI agents explain, draw and chart on a local whiteboard: diagrams, tables, math, plots and 3-D charts.",
+      "version": "0.1.0"
+    }
+  ]
+}

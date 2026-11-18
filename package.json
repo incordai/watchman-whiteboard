@@ -1,0 +1,23 @@
+{
+  "name": "watchman-whiteboard",
+  "version": "0.1.0",
+  "description": "Watchman Whiteboard: AI agents explain, draw and chart on a local whiteboard (a modified copy of gr-whiteboard, see UPSTREAM).",
+  "license": "Apache-2.0",
+  "private": true,
+  "repository": "https://github.com/incordai/watchman-whiteboard",
+  "engines": {
+    "node": ">=20"
+  },
+  "scripts": {
+    "test": "node --test"
+  },
+  "dependencies": {
+    "@cortex-js/compute-engine": "0.193.0",
+    "algebrite": "1.4.0",
+    "katex": "0.19.1",
+    "mathjax-full": "3.2.2",
+    "mathjs": "15.2.0",
+    "nerdamer": "2.0.1",
+    "openchemlib": "9.25.2"
+  }
+}

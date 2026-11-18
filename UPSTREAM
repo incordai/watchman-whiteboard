@@ -1,0 +1,144 @@
+Watchman Whiteboard is a modified copy of gr-whiteboard by GoodRelax
+(https://github.com/GoodRelax/gr-whiteboard, commit 6d6fd73), used under the Apache License 2.0
+(LICENSE). gr-whiteboard's own notice is kept in NOTICE.
+
+Imported 2026-11-17: skills/, test/, LICENSE, NOTICE and package.json. Not imported: the Claude Code
+plugin files (.claude-plugin/, .mcp.json), docs/ and plan/.
+
+Changes made by Incord AI, newest last:
+- 2026-11-17: removed the two tests of the Claude Code plugin files (test/unit/mcp-libs.test.js),
+  which are not shipped; Watchman's memory engine wires the board's MCP server into every agent.
+- 2026-11-17: renamed to Watchman Whiteboard (the owner's choice): the page title, status line and
+  toolbar label, the local certificate names, the screenshot temp folder, package.json, and the MCP
+  server name (board-control -> whiteboard), with the two tests that pin them. The status line says
+  "the agent's answers", since any agent may draw. The source link written into saved boards and the
+  origin of the thinking frameworks still name GoodRelax.
+- 2026-11-17: the page can load its libraries from page/vendor (staged by Watchman's build) instead of
+  esm.sh, so the board works offline: board-api.js gains vendorFile and a GET /vendor/<file> route
+  (known file types only, never outside the folder), and its content security policy then names no
+  other site. Without a staged vendor folder it loads from esm.sh as before. Tests in
+  test/unit/config-lan.test.js.
+- 2026-11-17: in an agent turn Watchman started (WATCHMAN_APP_ENDPOINT and WATCHMAN_APP_TOKEN set),
+  open_board opens the board in a Watchman browser tab (new skills/talk-on-board/scripts/lib/
+  watchman-tab.js; mcp.js openBoard reports browser=watchman-tab); the browser of the OS only outside
+  Watchman. Tests: test/unit/watchman-tab.test.js and a new case in test/integration/mcp.test.js.
+- 2026-11-17: client.js exits only after standard output has taken its reply (writeAndExit): on macOS
+  a pipe is written asynchronously, and process.exit right after the write cut a reply over 8 KB
+  off (test/integration/client-log.test.js "sent prints it in full" failed on macOS only).
+- 2026-11-17: the tests that make temp folders or start a Board Server run in a private temp folder
+  removed when the file ends (test/support/private-temp.js), so the suite leaves nothing behind;
+  before, 21 folders and the screenshot folder stayed in the system temp folder after every run.
+- 2026-11-17: drawing animation and narration (the owner's choice). draw_mermaid, draw_table and
+  draw_skeletons show their drawing like a person at a whiteboard: shapes traced, then arrows and lines
+  growing, then text written letter by letter, a few seconds in all (new page/reveal.mjs, the pure half,
+  served by board-api.js at GET /reveal.mjs; app.js revealDrawing). The frames are local Elements marked
+  grwbAnimation that collectChanges never sends; the Job's reply waits for the animation, which stays
+  below 40% of the Job timeout (board-hub.js now sends timeoutMs with draw and mermaid Jobs), and the
+  final Elements are exactly as before. #anim=<speed> in the page link sets the speed (0 = none);
+  prefers-reduced-motion and a hidden page turn it off. The three draw tools take an optional `say`
+  (1 to 20 texts of 1 to 200 characters; mcp.js schemas, board-ops.js checkSay, server.js, the Job):
+  the page draws one part per sentence and, as each part starts, emits the window event
+  watchman-whiteboard:say {text, part, parts, jobId} and posts it to the parent or opener window.
+  drawSkeletons now binds arrows to the Board shapes as they are after the animation. Tests:
+  test/unit/reveal.test.js and new cases in board-ops, board-hub-ops, operations, server and mcp tests.
+- 2026-11-17: the drawing animation follows the diagram's flow (the owner, after watching it): each
+  shape is traced and its text written at once, then the arrow leaving it and its label, then its
+  target, breadth first from the shapes no arrow comes into (reveal.mjs revealGroups); back arrows are
+  drawn when their source is reached; free texts inside a shape or beside an arrow count as its label;
+  tables row by row. `say` parts follow the same step groups. The first step was drawn during the
+  animated scroll to the drawing: the animation now starts after the scroll, and frames follow
+  reveal.mjs revealTimeline, which shows every step half drawn. window.__wbRevealLog records each step
+  as it starts ({step, elementId, kind, at, jobId}) for checks in a browser.
+- 2026-11-17: the board page shows only Watchman, none of Excalidraw's own branding (the owner's
+  choice): app.js gives Excalidraw its own MainMenu (Export, Save as image, Search, Help, Clear canvas,
+  theme, background; no "Excalidraw links"/Socials, collaboration, load/save-to-file or command
+  palette) and its own WelcomeScreen ("Watchman Whiteboard" in place of the Excalidraw logo); the label
+  "Mermaid to Excalidraw" reads "Mermaid to diagram"; the library's Publish item is hidden; index.html
+  hides the library's "Browse libraries" button and the Help dialog's links to Excalidraw's sites (new
+  page/brand.mjs, served at GET /brand.mjs). Excalidraw's MIT credit stays in NOTICE. Tests:
+  test/unit/brand.test.js and a case in test/integration/server.test.js.
+- 2026-11-17: outside an agent turn Watchman started (an agent in a plain terminal, a test over SSH),
+  open_board shows the board in a tab of the running Watchman too (the owner's choice: the browser of
+  the OS only when Watchman is not available). lib/watchman-tab.js finds Watchman as watchman-cli does,
+  through runtime.json in its app-data folder (WATCHMAN_DATA_DIR first; else %APPDATA%,
+  ~/Library/Application Support, or $XDG_DATA_HOME or ~/.local/share, then ai.incord.watchman), checks
+  that its process runs and its endpoint is a loopback address, and asks the runtime method
+  browser.openLocal with the owner token, only for a board on this computer. When Watchman is not
+  running, does not answer or cannot show it, the browser of the OS opens the board and the reply says
+  browser=opened reason="...". The order (the turn's endpoint, then runtime.json, then the system
+  browser) is lib/watchman-tab.js showBoard, which mcp.js openBoard now calls. Tests: new cases in
+  test/unit/watchman-tab.test.js and test/integration/mcp.test.js.
+- 2026-11-17: the board follows Watchman's look (the owner: dark when Watchman is dark, with the same
+  glass as its main app). showBoard gives Watchman the link with wm=1 in its hash (watchmanLink; the
+  system browser gets the plain link); Watchman adds theme=dark|light and glass=1|0 and sends them again
+  when its theme changes. New page/look.mjs (served at GET /look.mjs) reads them; app.js passes the
+  theme to Excalidraw, makes the page and the canvas see-through with glass (only on the page: the
+  Server never receives appState) and applies a new hash without a reload. Inside Watchman the menu has
+  no theme or canvas-colour item (brand.mjs menuItems). The right-hand palette (Send, Auto-send, the
+  agent's signal, the connection, Join) is no longer rendered (the owner: not usable): its Send reaches
+  only an agent that watches the board with Claude Code's Monitor tool; the welcome text no longer
+  names Send. Tests: test/unit/look.test.js, new cases in brand.test.js, watchman-tab.test.js and
+  test/integration/server.test.js.
+- 2026-11-17: a page counts only while it is there (Mac: Claude's open_board said pages=1 browser=skipped
+  for a page that had gone, and its draw failed with NoPage). The page answers each ping with POST
+  /api/pong (app.js); any post from a page marks it as there (board-hub.js touchPage). A page that
+  answered no ping for 60 s is dropped at its next ping (board-api.js, STALE_MS), and the new
+  POST /v1/pages/probe pings every page and drops the ones that do not answer within 1.5 s (hub.probe,
+  server.js probePages; logged as PageStale). open_board counts only the pages that answer, and always
+  asks Watchman to show the board: Watchman keeps one board tab and brings it forward; with no live page
+  the link carries open=<ms> so a board tab still there reloads; a live page in another browser opens
+  no system browser (watchman-tab.js showBoard systemBrowser). draw_mermaid, draw_table,
+  draw_skeletons, edit_items, write_answer and take_screenshot with no live page show the board the same
+  way, wait up to 8 s (GRWB_PAGE_WAIT_MS) for its page, then run once, else NoPage "no page is open,
+  and none connected within 8 s" (mcp.js ensurePage). Tests: new cases in test/unit/board-hub.test.js,
+  test/integration/server.test.js and test/integration/mcp.test.js.
+- 2026-11-17: one board; a new drawing keeps the old one in the board's Library (the owner's choice).
+  New scripts/lib/board-library.js. The Library is the board's, not one browser's: <data>/library.json
+  (newest first, at most 100 items), sent in hello and in a `library` event, and a person's own library
+  edits come back through POST /api/library (checkLibrary) and go to the other pages (app.js
+  applyLibrary, onLibraryChange; board-hub.js setLibrary). The MCP Server names its agent session on
+  every draw (drawer) and the three draw tools take an optional fresh. The rule (newDrawingDue): a
+  drawing by another agent than the one whose drawing is on the board is new; the same agent's next
+  drawing adds to its own; fresh=true starts anew, fresh=false adds; arrows bound to shapes on the board
+  add; a request with no drawer (client.js) adds, as before. Before a new drawing the Server (a page must
+  be there) puts the board's live elements into the Library as one item named "YYYY-MM-DD HH:MM <first
+  text from the top left>" (UTC), then deletes them all as one Operation "clear" that undo takes back
+  (BoardCleared), then draws. Tests: test/unit/board-library.test.js, a new case in
+  test/integration/server.test.js and in test/integration/mcp.test.js.
+- 2026-11-17: the board starts on the Hand tool (the owner: clicking or dragging selected things and opened
+  the properties). look.mjs HAND_TOOL and firstAppState (the first scene: the Hand, with Watchman's
+  canvas); after a new drawing clears the board the Server sends `cleared` and the page picks the Hand
+  again (hub.boardCleared, app.js onBoardCleared); a look change sets only the canvas (lookAppState),
+  so the tool the owner picks stays while the page is open. Tests: a new case in test/unit/look.test.js
+  and in test/integration/mcp.test.js.
+- 2026-11-17: the board opens where its agent works, never as a standalone page (the owner). watchman-tab.js
+  openInRunningWatchman sends the agent's working folder (process.cwd(), absolute only) with
+  browser.openLocal as `cwd`; Watchman opens the tab in that folder's project, else in the Chat page's tabs.
+  An older Watchman that refuses the field ("unknown field `cwd`") is asked again without it. Tests: a new
+  case in test/unit/watchman-tab.test.js and the cwd asserts in it and in test/integration/mcp.test.js.
+- 2026-11-17: math and science tools (draw_math, check_math, draw_plot, draw_chart, draw_geometry,
+  draw_molecule, draw_chart3d) with their libraries staged by Watchman's build; see NOTICE and the tests
+  named in each commit (test/unit/board-math, math-check, board-plot, board-geometry, board-chem,
+  board-plot3d; test/integration/math, plot).
+- 2026-11-17: nothing on the page names one agent (the owner's rule). The MCP Server learns its client's
+  name at initialize (mcp-stdio.js onInitialize, mcp.js agentNameOf: Claude, Codex, agy) and sends it with
+  each signal; the hub passes it on (setSignal, hello); the page's labels say "<agent>: ..." else "Agent"
+  (brand.mjs signalLabel, sendLabel). Tests: test/unit/agent-name.test.js, test/integration/plot.test.js.
+- 2026-11-17: Watchman's voice character on the board (the owner: "the character with voice in hands-free
+  is also visible on the whiteboard"). New POST /api/voice (scripts/lib/board-voice.js: Watchman's own
+  origins only, with a CORS answer, and the Token), hub.setVoice and a `voice` event (also in hello), and
+  page/voice.mjs with app.js VoiceLayer: the character's picture, name and sentence over the board's lower
+  right corner while the voice speaks. Tests: test/unit/board-voice.test.js, test/integration/voice.test.js.
+- 2026-11-17: the same 3-D voice character as Watchman (the owner's decision). POST /api/voice also takes
+  the .vrm and .vrma paths Watchman's voice mode draws (board-voice.js checkVoice); the board keeps them,
+  tells pages only an id and the clips' names (voiceModel), and serves the files with the Token at
+  GET /api/voice/character and /api/voice/clip/N (voiceFile). page/app.js startFigure draws them with
+  vendor/character.js (Watchman's src/features/whiteboard/board/boardCharacter.ts with three.js and
+  three-vrm, staged by Watchman's scripts/stage-whiteboard.mjs); the picture stands in when it cannot.
+  The page's CSP connect-src adds blob: (a .vrm's textures are read from blob: URLs). Tests:
+  test/unit/board-voice.test.js, test/unit/config-lan.test.js, test/integration/voice.test.js.
+- 2026-11-18: published on its own as incordai/watchman-whiteboard (the owner's choice), from Watchman's
+  copy (src-tauri/resources/whiteboard). Added back for a stand-alone install: the Claude Code plugin files
+  (.claude-plugin/plugin.json and marketplace.json, .mcp.json) under the Watchman Whiteboard name with the
+  MCP server `whiteboard`; package.json lists the math and chemistry packages the board loads by name, at
+  the versions Watchman's build tests; a README and a .gitignore for the staged library folders.

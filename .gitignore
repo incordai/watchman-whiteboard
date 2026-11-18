@@ -1,0 +1,7 @@
+node_modules/
+# Libraries staged for offline use (see README, "Working offline"): built, never committed.
+skills/debug-board-server/page/vendor/
+skills/debug-board-server/math-vendor/
+.DS_Store
+*.log
+.backups/

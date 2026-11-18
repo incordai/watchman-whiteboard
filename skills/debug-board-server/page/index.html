@@ -1,0 +1,174 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Watchman Whiteboard</title>
+<link rel="stylesheet" href="https://esm.sh/@excalidraw/excalidraw@0.18.1/dist/prod/index.css">
+<style>
+  html, body, #root { height: 100%; margin: 0; }
+  /* Watchman Whiteboard: with Watchman's glass on (look.mjs) the page is see-through, so the tab's glass shows. */
+  html.wm-glass, html.wm-glass body, html.wm-glass #root, html.wm-glass .excalidraw { background: transparent; }
+  #notice { position: fixed; inset: 0; display: none; align-items: center; justify-content: center;
+    font: 16px/1.5 system-ui, sans-serif; padding: 16px; text-align: center; background: #fff; color: #1e1e1e; z-index: 10; }
+  /* 0.7.2 (R-052 to R-058): one vertical palette of glyphs at the right, under the Library button; in the
+     phone layout of Excalidraw (excalidraw--mobile) under the right column. It uses the colors of Excalidraw,
+     so it follows the light and dark theme. The full texts are tooltips at the left. */
+  .wbp { position: fixed; top: 68px; right: 16px; z-index: 4; display: flex; flex-direction: column; align-items: center;
+    gap: 2px; padding: 4px; border-radius: 10px; background: var(--island-bg-color, #fff);
+    box-shadow: var(--shadow-island, 0 1px 4px rgba(0, 0, 0, 0.12)); color: var(--text-primary-color, #1b1b1f); }
+  .excalidraw--mobile .wbp { top: 196px; right: 4px; }
+  .wbp-sep { width: 24px; height: 1px; margin: 3px 0; background: var(--default-border-color, #e9ecef); }
+  .wbp-btn { position: relative; width: 36px; height: 36px; display: flex; align-items: center; justify-content: center;
+    box-sizing: border-box; border: 0; border-radius: 8px; padding: 0; margin: 0; background: transparent; color: inherit; cursor: pointer; }
+  .wbp-btn:hover { background: var(--button-hover-bg, #f1f0ff); }
+  .wbp-btn:focus-visible { outline: 2px solid var(--color-primary, #6965db); outline-offset: 1px; }
+  .wbp-btn svg { width: 22px; height: 20px; }
+  div.wbp-btn { cursor: default; }
+  .wbp-on, .wbp-on:hover { background: var(--color-surface-primary-container, #e0dfff); color: var(--color-on-primary-container, #030064); }
+  .wbp-primary, .wbp-primary:hover { background: #d97757; color: #fff; }
+  .wbp-dim, .wbp-dim:hover { opacity: 0.35; cursor: default; background: transparent; }
+  .wbp-grip, .wbp-grip:hover { height: 14px; opacity: 0.5; background: transparent; }
+  .wbp-grip svg { width: 16px; height: 16px; }
+  .wbp-count { position: absolute; top: -3px; left: -5px; min-width: 16px; height: 16px; padding: 0 4px; box-sizing: border-box;
+    border-radius: 8px; background: #e03131; color: #fff; font: 700 10px/16px system-ui, sans-serif; text-align: center; }
+  .wbp-reading { color: #e8590c; }
+  .wbp-working { color: #1971c2; }
+  .wbp-waiting { color: #2f9e44; }
+  .theme--dark .wbp-reading { color: #ff922b; }
+  .theme--dark .wbp-working { color: #4dabf7; }
+  .theme--dark .wbp-waiting { color: #69db7c; }
+  .wbp-working svg { animation: wbp-spin 1.2s linear infinite; }
+  @keyframes wbp-spin { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .wbp-working svg { animation: none; } }
+  .wbp-btn[data-tip]:hover::after, .wbp-btn[data-tip]:focus-visible::after { content: attr(data-tip); position: absolute;
+    right: calc(100% + 10px); top: 50%; transform: translateY(-50%); white-space: nowrap; pointer-events: none; z-index: 5;
+    font: 12px/1.4 system-ui, sans-serif; padding: 4px 8px; border-radius: 6px; background: #1e1e1e; color: #fff; }
+  .theme--dark .wbp-btn[data-tip]:hover::after, .theme--dark .wbp-btn[data-tip]:focus-visible::after { background: #e3e3e8; color: #121212; }
+  .excalidraw--mobile .wbp-btn[data-tip]:hover::after, .excalidraw--mobile .wbp-btn[data-tip]:focus-visible::after { white-space: normal; width: 180px; }
+  /* Watchman Whiteboard: every menu, panel and dialog of the board looks exactly like Watchman's browser bar, the
+     pick box at the browser's lower right (the owner, 2026-11-17), in the same theme: the same values as
+     src-tauri/src/browser/design.js (its "Watchman's own browser bar" style sheet). Change them together. The theme is
+     Excalidraw's, which follows Watchman's (look.mjs); outside Watchman, Excalidraw's own light. Excalidraw draws its
+     panels from the variables below (index.css of @excalidraw/excalidraw 0.18.1); the canvas is not touched. */
+  :root {
+    --wb-panel: rgba(249, 249, 249, 0.96); --wb-edge: rgba(0, 0, 0, 0.1); --wb-ink: rgba(46, 46, 46, 0.95);
+    --wb-ink-faint: rgba(46, 46, 46, 0.55); --wb-hover: rgba(46, 46, 46, 0.08); --wb-on: rgba(46, 46, 46, 0.12);
+    --wb-field: rgba(46, 46, 46, 0.04); --wb-shadow: 0 6px 24px rgba(0, 0, 0, 0.12);
+    --wb-accent: rgba(217, 119, 87, 0.7);
+  }
+  :root:has(.excalidraw.theme--dark) {
+    --wb-panel: rgba(33, 33, 33, 0.96); --wb-edge: rgba(235, 235, 235, 0.1); --wb-ink: rgba(235, 235, 235, 0.95);
+    --wb-ink-faint: rgba(235, 235, 235, 0.55); --wb-hover: rgba(235, 235, 235, 0.1); --wb-on: rgba(235, 235, 235, 0.14);
+    --wb-field: rgba(235, 235, 235, 0.05); --wb-shadow: 0 6px 24px rgba(0, 0, 0, 0.35);
+  }
+  .excalidraw, .excalidraw.theme--dark {
+    --island-bg-color: var(--wb-panel); --popup-bg-color: var(--wb-panel); --sidebar-bg-color: var(--wb-panel);
+    --shadow-island: var(--wb-shadow); --modal-shadow: var(--wb-shadow);
+    --default-border-color: var(--wb-edge); --sidebar-border-color: var(--wb-edge);
+    --text-primary-color: var(--wb-ink); --popup-text-color: var(--wb-ink); --icon-fill-color: var(--wb-ink);
+    --button-hover-bg: var(--wb-hover); --button-gray-1: var(--wb-hover); --button-gray-2: var(--wb-on);
+    --color-surface-low: var(--wb-panel); --color-surface-mid: var(--wb-hover); --color-surface-high: var(--wb-on);
+    --color-surface-primary-container: var(--wb-on); --color-on-primary-container: var(--wb-ink);
+    /* Excalidraw's purple accent becomes Watchman's clay, the pick bar's focus colour. */
+    --color-primary: #d97757; --color-primary-darker: #c4623f; --color-primary-darkest: #a9502f;
+    --color-primary-hover: #c4623f; --color-primary-light: rgba(217, 119, 87, 0.2); --color-brand-active: #c4623f;
+    --input-bg-color: var(--wb-field); --input-border-color: var(--wb-edge); --input-label-color: var(--wb-ink);
+  }
+  .excalidraw .Island, .excalidraw .dropdown-menu-container, .excalidraw .Modal__content, .excalidraw .sidebar,
+  .excalidraw .popover {
+    border: 1px solid var(--wb-edge); border-radius: 10px; color: var(--wb-ink);
+    font-family: system-ui, -apple-system, "Segoe UI", sans-serif; -webkit-font-smoothing: antialiased;
+  }
+  .excalidraw .ToolIcon__icon, .excalidraw .dropdown-menu-item { color: var(--wb-ink-faint); border-radius: 6px; }
+  .excalidraw .ToolIcon:hover .ToolIcon__icon, .excalidraw .dropdown-menu-item:hover { color: var(--wb-ink); }
+  .excalidraw :focus-visible { outline: 2px solid var(--wb-accent); outline-offset: 1px; }
+  /* The drawing tools (app.js ToolsToggle; the owner, 2026-11-17): Excalidraw's toolbar is a column at the right, under
+     the Library button and the fold button, and hidden while folded. The phone layout keeps Excalidraw's own. */
+  .excalidraw:not(.excalidraw--mobile) .App-toolbar-container { position: fixed; top: 108px; right: 16px; z-index: 4; }
+  /* Excalidraw's Stack is a grid that flows in columns: here two columns of tools, so the whole set (about 300 px)
+     fits a short window above the Help button; a divider spans both. */
+  .excalidraw:not(.excalidraw--mobile) .App-toolbar > .Stack_horizontal { grid-auto-flow: row;
+    grid-template-columns: repeat(2, auto); justify-items: center; }
+  .excalidraw:not(.excalidraw--mobile) .App-toolbar__divider { grid-column: 1 / -1; width: 56px; height: 1px; margin: 2px auto; }  .excalidraw:not(.excalidraw--mobile) .App-toolbar .HintViewer { position: fixed; top: 16px; left: 50%; right: auto;
+    transform: translateX(-50%); width: max-content; max-width: calc(100vw - 420px); }
+  /* The ☰ menu a set width (its items, with their shortcuts at the right, fill it), as Excalidraw sizes its Library
+     menu: Excalidraw gives this one none, so without the toolbar beside it, it filled the board's top row. */
+  .excalidraw .App-menu_top__left .dropdown-menu:not(.dropdown-menu--mobile) { width: min(17rem, calc(100vw - 32px)); }
+  /* "More tools" opens to the left of the column: where Excalidraw puts it, moved left by its own width. */
+  .excalidraw:not(.excalidraw--mobile) .App-toolbar__extra-tools-dropdown { left: auto; right: auto; top: auto;
+    transform: translateX(calc(-100% - 8px)); width: max-content; }
+  html.wb-tools-folded .excalidraw:not(.excalidraw--mobile) .App-toolbar-container { display: none; }
+  /* While the Library panel is open (Excalidraw's sidebar, 302 px with its margin: --right-sidebar-width) the tools
+     and their button step to its left instead of lying over it. */
+  .excalidraw:not(.excalidraw--mobile):has(.default-sidebar) .App-toolbar-container { right: calc(var(--right-sidebar-width, 302px) + 16px); }
+  body:has(.excalidraw .default-sidebar) .wbt { right: calc(302px + 16px); }
+  .wbt { position: fixed; top: 64px; right: 16px; z-index: 5; display: grid; place-items: center; box-sizing: border-box;
+    width: 40px; height: 36px; padding: 0; border: 1px solid var(--wb-edge); border-radius: 10px; cursor: pointer;
+    background: var(--wb-panel); box-shadow: var(--wb-shadow); color: var(--wb-ink-faint); }
+  html.wb-tools-folded .wbt { height: 32px; top: 66px; border-radius: 16px; }
+  .wbt:hover, .wbt-open { color: var(--wb-ink); }
+  .wbt:hover { background-image: linear-gradient(var(--wb-hover), var(--wb-hover)); }
+  .wbt:focus-visible { outline: 2px solid var(--wb-accent); outline-offset: 1px; }
+  .wbt svg { width: 14px; height: 14px; }
+  .excalidraw--mobile ~ .wbt, body:has(.excalidraw--mobile) .wbt { display: none; }
+  /* Text buttons of the Join dialog (Copy, Close). */
+  .wbc-send { font: 600 13px/1.4 system-ui, sans-serif; padding: 4px 10px; border-radius: 6px; cursor: pointer;
+    border: 1px solid var(--default-border-color, #ced4da); background: var(--button-gray-1, #f1f3f5); color: inherit; white-space: nowrap; }
+  .wbc-join-dialog { position: fixed; inset: 0; background: rgba(0, 0, 0, 0.4); display: flex; align-items: center;
+    justify-content: center; z-index: 20; }
+  .wbc-join-box { background: var(--island-bg-color, #fff); color: var(--text-primary-color, #1e1e1e); border-radius: 10px; padding: 16px 20px; max-width: 90vw; max-height: 90vh;
+    overflow: auto; font: 14px/1.5 system-ui, sans-serif; display: flex; flex-direction: column; gap: 12px; align-items: center; }
+  .wbc-join-url { font: 12px/1.4 ui-monospace, monospace; word-break: break-all; user-select: all; text-align: center; }
+  .wbc-join-box canvas { image-rendering: pixelated; }
+  /* Excalidraw inverts every canvas in its dark theme; a QR code must stay black on white (0.7.2). */
+  .excalidraw.theme--dark .wbc-join-box canvas { filter: none; }
+  .wbc-join-step { border-top: 1px solid #dee2e6; padding-top: 12px; display: flex; flex-direction: column; gap: 8px; max-width: 640px; width: 100%; }
+  .wbc-join-step ol { margin: 0; padding-left: 20px; }
+  .wbc-join-target { display: flex; flex-direction: column; align-items: center; gap: 6px; padding: 6px; border-radius: 8px; }
+  .wbc-recommended { background: #ebfbee; }
+  .theme--dark .wbc-recommended { background: #1f3d26; }
+  .wbc-join-name { font-weight: 600; text-align: center; }
+  .wbc-join-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; justify-content: center; }
+  .wbc-join-note { font-size: 13px; opacity: 0.8; }
+  .wbc-join-box details { display: flex; flex-direction: column; gap: 8px; }
+  .wbc-join-box summary { cursor: pointer; opacity: 0.8; }
+  .wbc-idle { position: fixed; top: 112px; left: 50%; transform: translateX(-50%); z-index: 15; max-width: 90vw;
+    font: 600 14px/1.4 system-ui, sans-serif; background: #fff3bf; color: #1e1e1e; border: 1px solid #f08c00;
+    border-radius: 8px; padding: 8px 14px; }
+  /* Watchman Whiteboard: none of Excalidraw's own branding (see app.js BoardMenu, brand.mjs). The library's
+     "Browse libraries" button goes to Excalidraw's library site, and the Help dialog's header links to Excalidraw's
+     docs, blog, GitHub and YouTube; the keyboard shortcuts below it stay. */
+  .library-menu-browse-button { display: none !important; }
+  .HelpDialog__header { display: none !important; }
+  /* Watchman Whiteboard: Watchman's voice character while it speaks (app.js VoiceCharacter, voice.mjs), over the
+     board's lower right corner, above Excalidraw's own corner buttons; it takes no clicks, so the board stays usable. */
+  .wbv { position: fixed; right: 16px; bottom: 64px; z-index: 6; display: flex; align-items: flex-end; gap: 10px;
+    max-width: min(460px, calc(100vw - 32px)); pointer-events: none; }
+  .wbv-face { width: 84px; height: 84px; flex: none; border-radius: 50%; object-fit: cover; background: #fbe9e3;
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.18); animation: wbv-talk 0.9s ease-in-out infinite alternate; }
+  .wbv-mark { background: radial-gradient(circle at 35% 35%, #eba58d, #d97757); }
+  /* The same 3-D character as Watchman's voice mode (app.js startFigure), standing where the picture would be. Wide
+     enough for its whole walk-in (the owner, 2026-11-17): it enters at the right edge, beside the subtitle, and ends
+     standing at the left, at the size it had in a 150 px box (boardCharacter.ts walkFrame; boardCharacter.test.ts checks
+     these sizes). The subtitle keeps the room it had beside that box. */
+  .wbv-stand { width: 290px; height: 240px; flex: none; }
+  .wbv:has(.wbv-stand) { max-width: min(600px, calc(100vw - 32px)); }
+  .wbv-figure { display: block; width: 100%; height: 100%; }
+  .wbv-words { min-width: 0; padding: 8px 12px; border-radius: 12px 12px 12px 2px; background: var(--island-bg-color, #fff);
+    color: var(--text-primary-color, #1e1e1e); box-shadow: var(--shadow-island, 0 1px 4px rgba(0, 0, 0, 0.12));
+    font: 15px/1.4 system-ui, sans-serif; }
+  /* The speaker's name in Watchman's clay (the owner, 2026-11-17: no blue), in both themes. */
+  .wbv-name { font-weight: 600; font-size: 12px; color: #d97757; }
+  .wbv-text { overflow-wrap: anywhere; }
+  @keyframes wbv-talk { from { transform: translateY(0) scale(1); } to { transform: translateY(-4px) scale(1.03); } }
+  @media (prefers-reduced-motion: reduce) { .wbv-face { animation: none; } }
+</style>
+<script type="importmap">{"imports":{"react":"https://esm.sh/react@19.2.8","react/jsx-runtime":"https://esm.sh/react@19.2.8/jsx-runtime","react-dom":"https://esm.sh/react-dom@19.2.8","react-dom/client":"https://esm.sh/react-dom@19.2.8/client","@excalidraw/excalidraw":"https://esm.sh/@excalidraw/excalidraw@0.18.1/dist/prod/index.js?external=react,react-dom","@excalidraw/mermaid-to-excalidraw":"https://esm.sh/@excalidraw/mermaid-to-excalidraw@2.2.2?deps=mermaid@11.13.0","qrcode-generator":"https://esm.sh/qrcode-generator@2.0.4","plotly.js-dist-min":"https://esm.sh/plotly.js-dist-min@4.3.0"}}</script>
+</head>
+<body>
+<div id="root"></div>
+<div id="notice"></div>
+<script type="module" src="/app.js"></script>
+</body>
+</html>
